@@ -1,0 +1,131 @@
+# .github/workflows/ci.yml
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Neovim ${{ matrix.neovim }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        neovim: ["stable", "v0.10.0", "nightly"]
+
+    steps:
+      - name: Checkout plugin
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup package managers with Corepack
+        run: |
+            corepack enable
+            corepack prepare pnpm@latest --activate
+            corepack prepare yarn@stable --activate
+
+      - name: Install Neovim ${{ matrix.neovim }}
+        run: |
+          set -euo pipefail
+
+          VERSION=${{ matrix.neovim }}
+
+          # All historic 0.x tags use nvim-linux64.tar.gz, everything newer uses -x86_64
+          if [[ "$VERSION" =~ ^v0\.[0-9]+\. ]]; then
+            FILENAME=nvim-linux64.tar.gz
+          else
+            FILENAME=nvim-linux-x86_64.tar.gz
+          fi
+
+          URL="https://github.com/neovim/neovim/releases/download/${VERSION}/${FILENAME}"
+          echo "Downloading $URL"
+
+          curl -fL -o nvim.tar.gz "$URL"        # -f = fail on 4xx/5xx, -L = follow redirects
+
+          mkdir nvim-extract
+          tar -xzf nvim.tar.gz -C nvim-extract
+
+          DIR="$(ls nvim-extract | head -n1)"   # should be nvim-linux64 or nvim-linux-x86_64
+          sudo mv "nvim-extract/$DIR" /opt/nvim
+          echo "/opt/nvim/bin" >> "$GITHUB_PATH"
+
+      - name: Verify Neovim
+        run: nvim --version
+
+      - name: Install Plenary
+        run: |
+          mkdir -p ~/.local/share/nvim/site/pack/test/start
+          git clone https://github.com/nvim-lua/plenary.nvim ~/.local/share/nvim/site/pack/test/start/plenary.nvim
+
+      - name: Install LuaRocks + luacheck + coverage tools
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y lua5.1 liblua5.1-0-dev luarocks
+          make install-deps
+
+      - name: Add PM global bin paths
+        run: |
+          echo "$(npm bin -g)" >> $GITHUB_PATH
+          echo "$(pnpm bin -g)" >> $GITHUB_PATH
+          echo "$(yarn global bin)" >> $GITHUB_PATH
+
+      - name: Run tests with coverage
+        run: |
+          make coverage
+
+      - name: Run luacov-lcov manually to generate lcov.info
+        run: |
+          eval "$(luarocks --lua-version=5.1 path --bin)"
+          echo "LuaRocks PATH: $PATH"
+          which luacov || echo "luacov still not found"
+          luacov -t LcovReporter > lcov.info
+          ls -l lcov.info
+
+
+      - name: Upload code coverage
+        uses: codecov/codecov-action@v4
+        with:
+          files: lcov.info               # <-- new file
+          disable_search: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  release:
+    name: Semantic Release
+    runs-on: ubuntu-latest
+    needs: Run tests with coverage
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install semantic-release and plugins
+        run: |
+          npm install --no-save \
+            semantic-release \
+            @semantic-release/commit-analyzer \
+            @semantic-release/release-notes-generator \
+            @semantic-release/changelog \
+            @semantic-release/github
+
+      - name: Run semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npx semantic-release
+
+
