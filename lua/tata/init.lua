@@ -118,7 +118,15 @@ function M.open()
     return
   end
 
-  local check_cmd = type(config.cmd) == 'string' and not config.cmd:find '%s' and config.cmd or (type(config.cmd) == 'table' and config.cmd[1]) or nil
+  local function extract_exec(cmd_opt)
+    if type(cmd_opt) == 'string' then
+      return cmd_opt:match('^%s*(%S+)')
+    elseif type(cmd_opt) == 'table' then
+      return cmd_opt[1]
+    end
+  end
+
+  local check_cmd = extract_exec(config.cmd)
 
   if check_cmd and vim.fn.executable(check_cmd) == 0 then
     if config.autoinstall then
@@ -142,7 +150,7 @@ function M.open()
     else
       -- Show fallback message
       if not state.buf or not vim.api.nvim_buf_is_valid(state.buf) then
-        state.buf = vim.api.nvim_create_buf(false, false)
+        state.buf = create_clean_buf()
       end
       vim.api.nvim_buf_set_lines(state.buf, 0, -1, false, {
         'Tata Coding Agent not found and autoinstall is disabled.',
@@ -167,10 +175,23 @@ function M.open()
   open_window()
 
   if not state.job then
-    local cmd_args = type(config.cmd) == 'string' and { config.cmd } or vim.deepcopy(config.cmd)
-    if config.model then
-      table.insert(cmd_args, '-m')
-      table.insert(cmd_args, config.model)
+    local cmd_type = type(config.cmd)
+    local cmd_args
+
+    if cmd_type == 'string' then
+      cmd_args = config.cmd
+      if config.model then
+        cmd_args = cmd_args .. ' -m ' .. vim.fn.shellescape(config.model)
+      end
+    elseif cmd_type == 'table' then
+      cmd_args = vim.deepcopy(config.cmd)
+      if config.model then
+        table.insert(cmd_args, '-m')
+        table.insert(cmd_args, config.model)
+      end
+    else
+      vim.notify('[tatacodes.nvim] Invalid cmd configuration; expected string or list', vim.log.levels.ERROR)
+      return
     end
 
     state.job = vim.fn.termopen(cmd_args, {

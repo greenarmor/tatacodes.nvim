@@ -114,9 +114,15 @@ describe('tatacodes.nvim', function()
     end, 10)
 
     assert(termopen_called, 'termopen should be called')
-    assert(type(received_cmd) == 'table', 'cmd should be passed as a list')
-    assert(vim.tbl_contains(received_cmd, '-m'), 'should include -m flag')
-    assert(vim.tbl_contains(received_cmd, 'o3-mini'), 'should include specified model name')
+    if type(received_cmd) == 'table' then
+      assert(vim.tbl_contains(received_cmd, '-m'), 'should include -m flag')
+      assert(vim.tbl_contains(received_cmd, 'o3-mini'), 'should include specified model name')
+    elseif type(received_cmd) == 'string' then
+      assert(received_cmd:find('%-m'), 'should include -m flag in command string')
+      assert(received_cmd:find('o3%-mini'), 'should include specified model name in command string')
+    else
+      error('termopen command should be a list or string')
+    end
 
     -- Restore original
     vim.fn = original_fn
