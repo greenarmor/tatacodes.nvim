@@ -19,6 +19,32 @@ Tatacodes.nvim adds an ergonomic floating terminal inside Neovim that runs the T
 }
 ```
 
+Example with lazy-loading commands and keymaps:
+```lua
+{
+  'greenarmor/tatacodes.nvim',
+  lazy = true,
+  cmd = { 'Tatacodes', 'TatacodesToggle', 'Codex', 'CodexToggle' },
+  keys = {
+    {
+      '<leader>tt',
+      function() require('tatacodes').toggle() end,
+      desc = 'Toggle Tatacodes popup',
+    },
+  },
+  opts = {
+    keymaps = {
+      toggle = nil,
+      quit = '<C-q>',
+    },
+    border = 'rounded',
+    width = 0.8,
+    height = 0.8,
+    autoinstall = true,
+  },
+}
+```
+
 ### packer.nvim
 ```lua
 use {
