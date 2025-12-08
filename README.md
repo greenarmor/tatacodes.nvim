@@ -4,7 +4,7 @@ Tatacodes.nvim adds an ergonomic floating terminal inside Neovim that runs the T
 
 ## Requirements
 - Neovim 0.8 or newer with Lua 5.1 (standard Neovim runtime).
-- Tata Coding Agent executable (`tata`) on your `PATH`, or one of: `npm`, `pnpm`, `yarn`, `bun`, `deno`, or `corepack` to install it automatically.
+- Tata Coding Agent executable (`tata`) on your `PATH`. Install it globally with `npm i -g @greenarmor/tatacodes` (or `pnpm add -g @greenarmor/tatacodes`), or ensure one of: `npm`, `pnpm`, `yarn`, `bun`, `deno`, or `corepack` is available so Tatacodes can install it automatically.
 - (For contributors) `nvim-lua/plenary.nvim` when executing the included test suite.
 
 ## Installation
