@@ -20,6 +20,41 @@ local config = {
   local_provider = 'ollama',
 }
 
+local function trim(s)
+  if type(s) ~= 'string' then
+    return ''
+  end
+  return (s:gsub('^%s+', ''):gsub('%s+$', ''))
+end
+
+local function ensure_local_provider_ready()
+  local provider = config.local_provider
+  if not provider or provider == '' then
+    return true
+  end
+
+  if vim.fn.executable(provider) == 0 then
+    return false, string.format('Local provider `%s` is not on PATH.', provider)
+  end
+
+  if provider == 'ollama' then
+    local ok, result = pcall(vim.fn.system, { provider, 'ps' })
+    if not ok then
+      return false, 'Failed to query Ollama orchestrator.'
+    end
+
+    if vim.v.shell_error ~= 0 then
+      local output = trim(result)
+      if output == '' then
+        output = 'Ollama orchestrator is not running. Start it with `ollama serve`.'
+      end
+      return false, output
+    end
+  end
+
+  return true
+end
+
 function M.setup(user_config)
   config = vim.tbl_deep_extend('force', config, user_config or {})
 
@@ -266,6 +301,17 @@ function M.status()
 end
 
 function M.toggle_provider()
+  local switching_to_local = not config.use_oss
+
+  if switching_to_local then
+    local ok, err = ensure_local_provider_ready()
+    if not ok then
+      local message = '[tatacodes.nvim] Unable to switch to local provider: ' .. (err or 'unknown error') .. ' Staying on cloud provider.'
+      vim.notify(message, vim.log.levels.WARN)
+      return
+    end
+  end
+
   config.use_oss = not config.use_oss
   local target = config.use_oss and 'local provider' or 'cloud provider'
   vim.notify('[tatacodes.nvim] Switched Tata Coding Agent to ' .. target, vim.log.levels.INFO)

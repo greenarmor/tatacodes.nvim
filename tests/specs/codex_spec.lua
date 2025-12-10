@@ -127,4 +127,74 @@ describe('tatacodes.nvim', function()
     -- Restore original
     vim.fn = original_fn
   end)
+
+  it('stays on cloud when Ollama orchestrator is unavailable', function()
+    local original_notify = vim.notify
+    local original_fn = vim.fn
+    local notifications = {}
+    local shell_error = 1
+
+    vim.notify = function(msg, level)
+      table.insert(notifications, { msg = msg, level = level })
+    end
+
+    vim.fn = setmetatable({
+      executable = function(_, exe)
+        if exe == 'ollama' then
+          return 1
+        end
+        return original_fn.executable(exe)
+      end,
+      system = function(_, _)
+        vim.v.shell_error = shell_error
+        if shell_error ~= 0 then
+          return 'Ollama orchestrator not running'
+        end
+        return ''
+      end,
+    }, { __index = original_fn })
+
+    local function restore()
+      vim.notify = original_notify
+      vim.fn = original_fn
+    end
+
+    local ok, err = pcall(function()
+      package.loaded['tatacodes'] = nil
+      package.loaded['tatacodes.state'] = nil
+      package.loaded['codex'] = nil
+      package.loaded['codex.state'] = nil
+      package.loaded['tata'] = nil
+      package.loaded['tata.state'] = nil
+
+      local tatacodes = require 'tatacodes'
+
+      tatacodes.setup {
+        cmd = { 'echo', 'test' },
+        use_oss = false,
+        local_provider = 'ollama',
+      }
+
+      tatacodes.toggle_provider()
+
+      eq(#notifications, 1)
+      local warn = notifications[#notifications]
+      eq(warn.level, vim.log.levels.WARN)
+      assert(warn.msg:find('Unable to switch to local provider'), 'expected warning about staying on cloud')
+
+      shell_error = 0
+      tatacodes.toggle_provider()
+
+      eq(#notifications, 2)
+      local info = notifications[#notifications]
+      eq(info.level, vim.log.levels.INFO)
+      assert(info.msg:find('Switched Tata Coding Agent to local provider'), 'expected success notification')
+    end)
+
+    restore()
+
+    if not ok then
+      error(err)
+    end
+  end)
 end)
