@@ -24,7 +24,7 @@ Example with lazy-loading commands and keymaps:
 {
   'greenarmor/tatacodes.nvim',
   lazy = true,
-  cmd = { 'Tatacodes', 'TatacodesToggle', 'Codex', 'CodexToggle' },
+  cmd = { 'Tatacodes', 'TatacodesToggle' },
   keys = {
     {
       '<leader>tt',
@@ -58,6 +58,7 @@ use {
 ## Usage
 - Launch the floating terminal with `:Tatacodes` (or `:TatacodesToggle`, `:Codex`, `:CodexToggle`).
 - Default quit mapping inside the popup is `<C-q>` in both normal and terminal mode.
+- A `<leader>ts` mapping is wired up by default to flip between the cloud agent and a local provider such as Ollama; override `keymaps.switch_provider` (or set it to `nil`) if you want a different key.
 - Close or reopen programmatically with `require('tatacodes').close()` and `require('tatacodes').toggle()`.
 
 The buffer exposed to the terminal is of type `tatacodes`, so you can target it in autocommands if needed.
@@ -69,11 +70,14 @@ Call `require('tatacodes').setup { ... }` with any of the options below:
 | --- | --- | --- | --- |
 | `keymaps.toggle` | string\|nil | `nil` | Normal-mode mapping you want to bind to `TatacodesToggle`. |
 | `keymaps.quit` | string\|nil | `<C-q>` | Key used in normal and terminal mode to close the window. |
+| `keymaps.switch_provider` | string\|nil | `<leader>ts` | Mapping to toggle between cloud and local providers; set to `nil` to disable. |
 | `border` | `'single' \| 'double' \| 'rounded' \| 'none' \| table` | `'single'` | Border style for the floating window. |
 | `width` / `height` | number | `0.8` | Editor-relative size (0–1) for the popup. |
 | `cmd` | string\|table | `'tata'` | Command executed via `termopen`. Use a table when adding CLI flags, e.g. `{ 'tata', '--telemetry=off' }`. |
 | `model` | string\|nil | `nil` | Adds `-m <model>` when launching the agent. |
 | `autoinstall` | boolean | `true` | Prompts to install the agent if the executable is missing. |
+| `use_oss` | boolean | `false` | When true, appends `--oss` to the Tata CLI launch command. |
+| `local_provider` | string\|nil | `'ollama'` | Provider passed as `--local-provider <value>` whenever `use_oss` is enabled. |
 
 ## Autoinstall Flow
 1. When `cmd` points to an executable that cannot be found and `autoinstall = true`, Tatacodes opens a selector listing detected package managers (enabling `corepack` shims when present).

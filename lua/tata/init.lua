@@ -8,6 +8,7 @@ local config = {
   keymaps = {
     toggle = nil,
     quit = '<C-q>', -- Default: Ctrl+q to quit
+    switch_provider = '<leader>ts',
   },
   border = 'single',
   width = 0.8,
@@ -15,6 +16,8 @@ local config = {
   cmd = 'tata',
   model = nil, -- Default to the latest model
   autoinstall = true,
+  use_oss = false,
+  local_provider = 'ollama',
 }
 
 function M.setup(user_config)
@@ -38,6 +41,11 @@ function M.setup(user_config)
 
   if config.keymaps.toggle then
     vim.api.nvim_set_keymap('n', config.keymaps.toggle, '<cmd>TatacodesToggle<CR>', { noremap = true, silent = true })
+  end
+
+  if config.keymaps.switch_provider then
+    local switch_cmd = [[<cmd>lua require('tatacodes').toggle_provider()<CR>]]
+    vim.api.nvim_set_keymap('n', config.keymaps.switch_provider, switch_cmd, { noremap = true, silent = true })
   end
 end
 
@@ -108,6 +116,12 @@ function M.open()
       local quit_cmd = [[<cmd>lua require('tatacodes').close()<CR>]]
       vim.api.nvim_buf_set_keymap(buf, 't', config.keymaps.quit, [[<C-\><C-n>]] .. quit_cmd, { noremap = true, silent = true })
       vim.api.nvim_buf_set_keymap(buf, 'n', config.keymaps.quit, quit_cmd, { noremap = true, silent = true })
+    end
+
+    if config.keymaps.switch_provider then
+      local switch_cmd = [[<cmd>lua require('tatacodes').toggle_provider()<CR>]]
+      vim.api.nvim_buf_set_keymap(buf, 't', config.keymaps.switch_provider, [[<C-\><C-n>]] .. switch_cmd, { noremap = true, silent = true })
+      vim.api.nvim_buf_set_keymap(buf, 'n', config.keymaps.switch_provider, switch_cmd, { noremap = true, silent = true })
     end
 
     return buf
@@ -183,11 +197,24 @@ function M.open()
       if config.model then
         cmd_args = cmd_args .. ' -m ' .. vim.fn.shellescape(config.model)
       end
+      if config.use_oss then
+        cmd_args = cmd_args .. ' --oss'
+        if config.local_provider then
+          cmd_args = cmd_args .. ' --local-provider ' .. vim.fn.shellescape(config.local_provider)
+        end
+      end
     elseif cmd_type == 'table' then
       cmd_args = vim.deepcopy(config.cmd)
       if config.model then
         table.insert(cmd_args, '-m')
         table.insert(cmd_args, config.model)
+      end
+      if config.use_oss then
+        table.insert(cmd_args, '--oss')
+        if config.local_provider then
+          table.insert(cmd_args, '--local-provider')
+          table.insert(cmd_args, config.local_provider)
+        end
       end
     else
       vim.notify('[tatacodes.nvim] Invalid cmd configuration; expected string or list', vim.log.levels.ERROR)
@@ -236,6 +263,23 @@ function M.status()
     icon = '',
     color = { fg = '#51afef' },
   }
+end
+
+function M.toggle_provider()
+  config.use_oss = not config.use_oss
+  local target = config.use_oss and 'local provider' or 'cloud provider'
+  vim.notify('[tatacodes.nvim] Switched Tata Coding Agent to ' .. target, vim.log.levels.INFO)
+
+  if state.job then
+    pcall(vim.fn.jobstop, state.job)
+    state.job = nil
+  end
+
+  local win_active = state.win and vim.api.nvim_win_is_valid(state.win)
+  if win_active then
+    M.close()
+    vim.schedule(M.open)
+  end
 end
 
 return setmetatable(M, {
