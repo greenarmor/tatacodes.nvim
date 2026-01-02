@@ -4,11 +4,11 @@ local M = {}
 M.__test_ignore_path_check = false -- used in tests to skip path checks
 
 local install_cmds = {
-  npm = 'npm install -g @openai/codex',
-  pnpm = 'pnpm add -g @openai/codex',
-  yarn = 'yarn global add @openai/codex',
-  bun = 'bun add -g @openai/codex',
-  deno = [[deno install --global --allow-all -f --name codex npm:@openai/codex]],
+  npm = 'npm install -g @greenarmor/tatacodes',
+  pnpm = 'pnpm add -g @greenarmor/tatacodes',
+  yarn = 'yarn global add @greenarmor/tatacodes',
+  bun = 'bun add -g @greenarmor/tatacodes',
+  deno = [[deno install --global --allow-all -f --name tata npm:@greenarmor/tatacodes]],
 }
 
 local fallback_instructions = {
@@ -152,7 +152,7 @@ function M.prompt_autoinstall(on_done)
 
   vim.schedule(function()
     vim.ui.select(pms, {
-      prompt = 'Select package manager to install @openai/codex:',
+      prompt = 'Select package manager to install @greenarmor/tatacodes:',
       kind = 'tatacodes-install',
     }, function(choice)
       if not choice then

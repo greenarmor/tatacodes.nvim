@@ -81,7 +81,7 @@ Call `require('tatacodes').setup { ... }` with any of the options below:
 
 ## Autoinstall Flow
 1. When `cmd` points to an executable that cannot be found and `autoinstall = true`, Tatacodes opens a selector listing detected package managers (enabling `corepack` shims when present).
-2. After you choose one, a temporary floating terminal runs the corresponding install command (`@openai/codex`).
+2. After you choose one, a temporary floating terminal runs the corresponding install command (`@greenarmor/tatacodes`).
 3. Success and failure are relayed via `vim.notify`. For managers that need additional `PATH` exports (`pnpm`, `yarn`, `bun`, `deno`), Tatacodes prints tailored follow-up steps.
 4. On success the popup reopens automatically with the newly installed CLI.
 
