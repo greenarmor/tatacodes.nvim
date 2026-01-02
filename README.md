@@ -63,6 +63,21 @@ use {
 
 The buffer exposed to the terminal is of type `tatacodes`, so you can target it in autocommands if needed.
 
+## Using Tatacodes with Ollama (local provider)
+- Ensure the `ollama` CLI is installed and the Ollama service is running (`ollama serve`).
+- Enable local mode in your config:
+
+  ```lua
+  require('tatacodes').setup {
+    use_oss = true,           -- append --oss flags when launching the Tata CLI
+    local_provider = 'ollama' -- default; set to another provider if desired
+  }
+  ```
+
+- Toggle between cloud and local modes with `<leader>ts` (change or disable via `keymaps.switch_provider`). The plugin refuses to switch to local if Ollama isn’t available or running and will notify you instead.
+- Open the popup with `:Tatacodes`/`:TatacodesToggle`; when `use_oss` is on, the Tata CLI is launched with `--oss --local-provider ollama` so it immediately targets your local provider.
+
+
 ## Configuration
 Call `require('tatacodes').setup { ... }` with any of the options below:
 
